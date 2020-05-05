@@ -35,12 +35,17 @@ func viewHTMLRouter(router *gin.Engine) {
 	// all html is from this folder (view)
 	router.LoadHTMLGlob("view/*.html")
 	router.Static("/scripts", "view/scripts")
-	// router.StaticFile("/sw.js", "view/sw.js")
 	router.Static("/assets", "view/assets")
-	// router.Static("/public", "view/public")
+	router.Static("/data", "view/data")
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{
+			"timestamp": time.Now().Unix(),
+		})
+	})
+
+	router.GET("/set", func(c *gin.Context) {
+		c.HTML(200, "set.html", gin.H{
 			"timestamp": time.Now().Unix(),
 		})
 	})
