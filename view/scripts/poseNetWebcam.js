@@ -7,7 +7,6 @@
 ml5 Example
 PoseNet example using p5.js
 === */
-
 let data = JSON.parse(`{
   "cqcw":[
       {
@@ -1303,9 +1302,36 @@ let data = JSON.parse(`{
 }`)
 let idx = 0;
 let example;
+let exPoseData;
 let video;
 let poseNet;
 let poses = [];
+let userPoseData;
+let isSimilar = false;
+
+function getSimilarity(ex, user) {
+  // cosine similarity
+  let cs = pns.poseSimilarity(ex, user, { strategy: 'cosineSimilarity' });
+  console.log("cs:", cs);
+
+  // euclidian distance
+  let ed = Math.sqrt(2 * (1 - cs));
+  console.log("ed:", ed);
+
+  if(cs >= 0.9 && ed <= 0.15) {
+    return true;
+  }
+  return false;
+}
+
+function getPoseData(pose) {
+  var arr = [];
+  for(let i = 0; i < pose.length; i++){
+    arr.push(pose[i].position.x);
+    arr.push(pose[i].position.y);
+  }
+  return arr
+}
 
 function setExampleImage() {
   // get example
@@ -1314,6 +1340,10 @@ function setExampleImage() {
   exResult = example.result;
   imgObj = document.getElementById("img-example");
   imgObj.src = exFilename;
+  exPoseData = {
+    score: example.result.pose.score,
+    keypoints: example.result.pose.keypoints
+  };
 }
 
 function setup() {
@@ -1329,6 +1359,13 @@ function setup() {
   // with an array every time new poses are detected
   poseNet.on('pose', function(results) {
     poses = results;
+    if(poses && poses.length > 0) {
+      userPoseData = {
+        score: poses[0].pose.score,
+        keypoints: poses[0].pose.keypoints
+      };
+      isSimilar = getSimilarity(exPoseData, userPoseData);
+    }
   });
   // Hide the video element, and just show the canvas
   video.hide();
@@ -1344,6 +1381,11 @@ function draw() {
   // We can call both functions to draw all keypoints and the skeletons
   drawKeypoints();
   drawSkeleton();
+
+  if(isSimilar) {
+    alert("Congratulations!!");
+    noLoop();
+  }
 }
 
 // A function to draw ellipses over the detected keypoints
