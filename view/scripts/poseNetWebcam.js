@@ -1300,7 +1300,7 @@ let data = JSON.parse(`{
       }
   ]
 }`)
-let idx = 1;
+let idx = 0;
 let example;
 let exPoseData;
 let video;
@@ -1319,16 +1319,12 @@ function getSimilarity(ex, user) {
   // cosine distance
   let cd = pns.poseSimilarity(ex, user, { strategy: 'cosineDistance' });
 
-  // euclidian distance
-  let ed = Math.sqrt(2 * cs);
-
   document.getElementById("wd-val").innerHTML = wd;
   document.getElementById("cd-val").innerHTML = cd;
   document.getElementById("cs-val").innerHTML = cs;
-  document.getElementById("ed-val").innerHTML = ed;
 
-  if(cs >= 0.9 && cd <= 0.1) {
-    score = Math.floor((score + (cs + (1-ed)) / 2) * 100);
+  if(cs >= 0.9 && cd <= 0.3 && wd <= 0.15) {
+    score = Math.floor(score + (cs + (1-cd)) / 2 * 100);
     document.getElementById("score").innerHTML = score;
     return true;
   }
@@ -1391,6 +1387,7 @@ function draw() {
     }else{
       idx++;
     }
+    setExampleImage();
   }
 }
 
