@@ -1347,7 +1347,7 @@ function setExampleImage() {
 function setup() {
   setExampleImage();
 
-  createCanvas(640, 480);
+  createCanvas(640, 640);
   video = createCapture(VIDEO);
   video.size(width, height);
 
