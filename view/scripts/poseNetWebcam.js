@@ -7,11 +7,11 @@
 ml5 Example
 PoseNet example using p5.js
 === */
+let score = 0;
 let data = JSON.parse(`{
   "cqcw":[
       {
           "filename":"assets/images/cqcw1.png",
-          "result":{
               "pose":{
                   "score":0.6935193415950326,
                   "keypoints":[
@@ -456,7 +456,7 @@ let data = JSON.parse(`{
                       }
                   ]
               ]
-          }
+          
       },
       {
           "filename": "assets/images/cqcw2.png",
@@ -1300,7 +1300,7 @@ let data = JSON.parse(`{
       }
   ]
 }`)
-let idx = 0;
+let idx = 1;
 let example;
 let exPoseData;
 let video;
@@ -1310,39 +1310,41 @@ let userPoseData;
 let isSimilar = false;
 
 function getSimilarity(ex, user) {
+  // weighted distance
+  let wd = pns.poseSimilarity(ex, user, { strategy: 'weightedDistance' });
+
   // cosine similarity
   let cs = pns.poseSimilarity(ex, user, { strategy: 'cosineSimilarity' });
-  console.log("cs:", cs);
+
+  // cosine distance
+  let cd = pns.poseSimilarity(ex, user, { strategy: 'cosineDistance' });
 
   // euclidian distance
-  let ed = Math.sqrt(2 * (1 - cs));
-  console.log("ed:", ed);
+  let ed = Math.sqrt(2 * cs);
 
-  if(cs >= 0.9 && ed <= 0.15) {
+  document.getElementById("wd-val").innerHTML = wd;
+  document.getElementById("cd-val").innerHTML = cd;
+  document.getElementById("cs-val").innerHTML = cs;
+  document.getElementById("ed-val").innerHTML = ed;
+
+  if(cs >= 0.9 && cd <= 0.1) {
+    score = Math.floor((score + (cs + (1-ed)) / 2) * 100);
+    document.getElementById("score").innerHTML = score;
     return true;
   }
   return false;
-}
-
-function getPoseData(pose) {
-  var arr = [];
-  for(let i = 0; i < pose.length; i++){
-    arr.push(pose[i].position.x);
-    arr.push(pose[i].position.y);
-  }
-  return arr
 }
 
 function setExampleImage() {
   // get example
   example = data.cqcw[idx];
   exFilename = example.filename;
-  exResult = example.result;
+  // exResult = example.result;
   imgObj = document.getElementById("img-example");
   imgObj.src = exFilename;
   exPoseData = {
-    score: example.result.pose.score,
-    keypoints: example.result.pose.keypoints
+    score: example.pose.score,
+    keypoints: example.pose.keypoints
   };
 }
 
@@ -1384,7 +1386,11 @@ function draw() {
 
   if(isSimilar) {
     alert("Congratulations!!");
-    noLoop();
+    if(idx == data.length - 1){
+      idx = 0;
+    }else{
+      idx++;
+    }
   }
 }
 

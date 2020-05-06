@@ -2,7 +2,6 @@
     "cqcw":[
         {
             "filename":"assets/images/cqcw1.png",
-            "result":{
                 "pose":{
                     "score":0.6935193415950326,
                     "keypoints":[
@@ -447,7 +446,7 @@
                         }
                     ]
                 ]
-            }
+            
         },
         {
             "filename": "assets/images/cqcw2.png",
