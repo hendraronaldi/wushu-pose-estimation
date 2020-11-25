@@ -1315,7 +1315,8 @@ let options = {
     inputResolution: { width: 257, height: 200 },
     quantBytes: 2
 }
-let confidenceLevelThreshold = 0.7;
+let confidenceLevelThreshold = 0.5;
+let minFeaturesThreshold = 10;
 let featureList = [
     "Nose",
     "leftEye",
@@ -1381,6 +1382,13 @@ function getSimilarityScore(maxDistances, rotations){
 function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     // remove unqualified features
     let [modelFeatures, userFeatures, qualifiedFeatures] = removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj);
+
+    // check qualified features threshold
+    if(qualifiedFeatures.length < minFeaturesThreshold){
+        return false;
+    }
+
+    
     return false;
 }
 
