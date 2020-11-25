@@ -1337,6 +1337,32 @@ let featureList = [
     "rightAnkle"
 ]
 
+let faceFeatureList = [
+    "Nose",
+    "leftEye",
+    "rightEye",
+    "leftEar",
+    "rightEar"
+]
+
+let torsoFeatureList = [
+    "leftShoulder",
+    "rightShoulder",
+    "leftElbow",
+    "rightElbow",
+    "leftWrist",
+    "rightWrist"
+]
+
+let legsFeatureList = [
+    "leftHip",
+    "rightHip",
+    "leftKnee",
+    "rightKnee",
+    "leftAnkle",
+    "rightAnkle"
+]
+
 function standardization(features){
 
 }
@@ -1388,7 +1414,13 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
         return false;
     }
 
-    
+    // standardize features
+    let modelFeaturesScaled = standardization(modelFeatures);
+    let userFeaturesScaled = standardization(userFeatures)
+
+    // split features in 3 parts
+    let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
+    let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
     return false;
 }
 
