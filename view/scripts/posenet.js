@@ -1425,7 +1425,7 @@ function affineTransformation(modelFeatures, userFeatures){
 
     let transformedFeatures = applyToPoints(affMatrix, userFeatures);
     
-    return A, transformedFeatures;
+    return [transformedFeatures, A];
 }
 
 function affineFromFeatures(modelFeatures, userFeatures) {
@@ -1454,20 +1454,6 @@ function affineFromFeatures(modelFeatures, userFeatures) {
       sum_Latx += modelFeatures[i][1] * userFeatures[i][0]
       sum_Laty += modelFeatures[i][1] * userFeatures[i][1]
     }
-
-    // gcps.forEach(p => {
-    //   sum_x += p.source.x
-    //   sum_y += p.source.y
-    //   sum_xy += p.source.x * p.source.y
-    //   sum_xx += p.source.x * p.source.x
-    //   sum_yy += p.source.y * p.source.y
-    //   sum_Lon += p.dest.x
-    //   sum_Lonx += p.dest.x * p.source.x
-    //   sum_Lony += p.dest.x * p.source.y
-    //   sum_Lat += p.dest.y
-    //   sum_Latx += p.dest.y * p.source.x
-    //   sum_Laty += p.dest.y * p.source.y
-    // })
 
     divisor = modelFeatures.length * (sum_xx * sum_yy - sum_xy * sum_xy)
             + 2 * sum_x * sum_y * sum_xy - sum_y * sum_y * sum_xx
@@ -1527,8 +1513,20 @@ function affineFromFeatures(modelFeatures, userFeatures) {
     return affine
 }
 
-function maxDistanceAndRotation(modelFeatures, userFeatures, A){
+function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
+    // Max Euclidean Distance
+    let maxDist = 0;
+    for(var i=0; i < modelFeatures.length; i++){
+        let dist = Math.sqrt(Math.pow((modelFeatures[i][0] - transformedFeatures[i][0]), 2) + 
+        Math.pow((modelFeatures[i][1] - transformedFeatures[i][1]), 2));
+        if(dist > maxDist){
+            maxDist = dist;
+        }
+    }
 
+    // Rotations
+    let rotations = Math.max(Math.abs(A[2]), Math.abs(A[4]));
+    return [maxDist, rotations];
 }
 
 function getSimilarityScore(maxDistances, rotations){
@@ -1555,7 +1553,27 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     // affine transformation
     let [transformedFace, AFace] = affineTransformation(modelFace, userFace);
     let [transformedTorso, ATorso] = affineTransformation(modelTorso, userTorso);
-    let [transfromedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
+    let [transformedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
+
+    // max distance and rotations
+    let [maxDistFace, rotationFace] = maxDistanceAndRotation(modelFace, transformedFace, AFace);
+    let [maxDistTorso, rotationTorso] = maxDistanceAndRotation(modelTorso, transformedTorso, ATorso);
+    let [maxDistLegs, rotationLegs] = maxDistanceAndRotation(modelLegs, transformedLegs, ALegs);
+
+    let maxDistances = {
+        face: maxDistFace,
+        torso: maxDistTorso,
+        legs: maxDistLegs
+    }
+
+    let rotations = {
+        face: rotationFace,
+        torso: rotationTorso,
+        legs: rotationLegs
+    }
+
+    // similarity threshold
+    let simScore = getSimilarityScore(maxDistances, rotations);
 
     return false;
 }
