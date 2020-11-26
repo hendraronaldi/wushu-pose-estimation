@@ -1301,6 +1301,7 @@ let data = JSON.parse(`{
   ]
 }`)
 // config
+let {scale, rotate, translate, compose, applyToPoints} = window.TransformationMatrix;
 let idx = 0;
 let example;
 let exPoseData;
@@ -1408,10 +1409,122 @@ function splitInFaceLegsTorso(featuresArr, qualifiedArr){
 }
 
 function affineTransformation(modelFeatures, userFeatures){
-    modelFeatures = nj.array(modelFeatures);
-    userFeatures = nj.array(userFeatures);
-    let X = nj.stack([userFeatures, nj.ones(userFeatures.shape[0], 1)], 0);
-    console.log(X);
+    //[0] is x offset
+    //[1] is x scale
+    //[2] is x rotation
+    //[3] is y offset
+    //[4] is y rotation
+    //[5] is y scale
+
+    let A = affineFromFeatures(modelFeatures, userFeatures);
+    let affMatrix = compose(
+        translate(A[0], A[3]),
+        rotate(Math.PI*A[2]/180, Math.PI*A[4]/180),
+        scale(A[1], A[5])
+    );
+
+    let transformedFeatures = applyToPoints(affMatrix, userFeatures);
+    
+    return A, transformedFeatures;
+}
+
+function affineFromFeatures(modelFeatures, userFeatures) {
+
+    let sum_x = 0.0, sum_y = 0.0, sum_xy = 0.0, sum_xx = 0.0, sum_yy = 0.0
+    let sum_Lon = 0.0, sum_Lonx = 0.0, sum_Lony = 0.0
+    let sum_Lat = 0.0, sum_Latx = 0.0, sum_Laty = 0.0
+    let divisor = 0.0
+
+    let affine = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    if (modelFeatures.length < 3) {
+    	return null
+    }
+
+    for(var i=0; i < modelFeatures.length; i++){
+      sum_x += userFeatures[i][0]
+      sum_y += userFeatures[i][1]
+      sum_xy += userFeatures[i][0] * userFeatures[i][1]
+      sum_xx += userFeatures[i][0] * userFeatures[i][0]
+      sum_yy += userFeatures[i][1] * userFeatures[i][1]
+      sum_Lon += modelFeatures[i][0]
+      sum_Lonx += modelFeatures[i][0] * userFeatures[i][0]
+      sum_Lony += modelFeatures[i][0] * userFeatures[i][1]
+      sum_Lat += modelFeatures[i][1]
+      sum_Latx += modelFeatures[i][1] * userFeatures[i][0]
+      sum_Laty += modelFeatures[i][1] * userFeatures[i][1]
+    }
+
+    // gcps.forEach(p => {
+    //   sum_x += p.source.x
+    //   sum_y += p.source.y
+    //   sum_xy += p.source.x * p.source.y
+    //   sum_xx += p.source.x * p.source.x
+    //   sum_yy += p.source.y * p.source.y
+    //   sum_Lon += p.dest.x
+    //   sum_Lonx += p.dest.x * p.source.x
+    //   sum_Lony += p.dest.x * p.source.y
+    //   sum_Lat += p.dest.y
+    //   sum_Latx += p.dest.y * p.source.x
+    //   sum_Laty += p.dest.y * p.source.y
+    // })
+
+    divisor = modelFeatures.length * (sum_xx * sum_yy - sum_xy * sum_xy)
+            + 2 * sum_x * sum_y * sum_xy - sum_y * sum_y * sum_xx
+            - sum_x * sum_x * sum_yy
+
+    /* -------------------------------------------------------------------- */
+    /*      If the divisor is zero, there is no valid solution.             */
+    /* -------------------------------------------------------------------- */
+    if (divisor === 0) {
+    	return null
+    }
+
+    /* -------------------------------------------------------------------- */
+    /*      Compute top/left origin.                                        */
+    /* -------------------------------------------------------------------- */
+
+    affine[0] = (sum_Lon * (sum_xx * sum_yy - sum_xy * sum_xy)
+                               + sum_Lonx * (sum_y * sum_xy - sum_x * sum_yy)
+                               + sum_Lony * (sum_x * sum_xy - sum_y * sum_xx))
+            / divisor
+
+    affine[3] = (sum_Lat * (sum_xx * sum_yy - sum_xy * sum_xy)
+                               + sum_Latx * (sum_y * sum_xy - sum_x * sum_yy)
+                               + sum_Laty * (sum_x * sum_xy - sum_y * sum_xx))
+            / divisor
+
+    /* -------------------------------------------------------------------- */
+    /*      Compute X related coefficients.                                 */
+    /* -------------------------------------------------------------------- */
+    affine[1] = (sum_Lon * (sum_y * sum_xy - sum_x * sum_yy)
+                               + sum_Lonx * (modelFeatures.length * sum_yy - sum_y * sum_y)
+                               + sum_Lony * (sum_x * sum_y - sum_xy * modelFeatures.length))
+            / divisor
+
+    affine[2] = (sum_Lon * (sum_x * sum_xy - sum_y * sum_xx)
+                               + sum_Lonx * (sum_x * sum_y - modelFeatures.length * sum_xy)
+                               + sum_Lony * (modelFeatures.length * sum_xx - sum_x * sum_x))
+            / divisor
+
+    /* -------------------------------------------------------------------- */
+    /*      Compute Y related coefficients.                                 */
+    /* -------------------------------------------------------------------- */
+    affine[4] = (sum_Lat * (sum_y * sum_xy - sum_x * sum_yy)
+                               + sum_Latx * (modelFeatures.length * sum_yy - sum_y * sum_y)
+                               + sum_Laty * (sum_x * sum_y - sum_xy * modelFeatures.length))
+            / divisor
+
+    affine[5] = (sum_Lat * (sum_x * sum_xy - sum_y * sum_xx)
+                               + sum_Latx * (sum_x * sum_y - modelFeatures.length * sum_xy)
+                               + sum_Laty * (modelFeatures.length * sum_xx - sum_x * sum_x))
+            / divisor
+
+
+    affine[0] += 0.5 * affine[1] + 0.5 * affine[2]
+    affine[3] += 0.5 * affine[4] + 0.5 * affine[5]
+
+    return affine
 }
 
 function maxDistanceAndRotation(modelFeatures, userFeatures, A){
@@ -1441,8 +1554,8 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
 
     // affine transformation
     let [transformedFace, AFace] = affineTransformation(modelFace, userFace);
-    // let [transformedTorso, ATorso] = affineTransformation(modelTorso, userTorso);
-    // let [transfromedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
+    let [transformedTorso, ATorso] = affineTransformation(modelTorso, userTorso);
+    let [transfromedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
 
     return false;
 }
