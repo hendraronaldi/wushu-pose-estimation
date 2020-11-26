@@ -1364,7 +1364,14 @@ let legsFeatureList = [
 ]
 
 function standardization(features){
+    // min max scale
+    let njFeatures = nj.array(features);
+    let fMin = njFeatures.min();
+    let fMax = njFeatures.max();
 
+    njFeatures = njFeatures.add(-fMin);
+    njFeatures = njFeatures.divide((fMax-fMin));
+    return njFeatures;
 }
 
 function removeConfidenceLevel(features){
@@ -1372,9 +1379,9 @@ function removeConfidenceLevel(features){
 }
 
 function removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj){
-    let qualifiedFeatures = []
-    let modelObj = {}
-    let userObj = {}
+    let qualifiedFeatures = [];
+    let modelArr = [];
+    let userArr = [];
 
     for(var i=0; i<featureList.length; i++){
         if(!(modelFeaturesObj.keypoints[i].score < confidenceLevelThreshold ||
@@ -1382,11 +1389,11 @@ function removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj){
             
                 qualifiedFeatures.push(featureList[i]);
 
-                modelObj[featureList[i]] = [modelFeaturesObj.keypoints[i].position.x, modelFeaturesObj.keypoints[i].position.y];
-                userObj[featureList[i]] = [userFeaturesObj.keypoints[i].position.x, userFeaturesObj.keypoints[i].position.y];
+                modelArr.push([modelFeaturesObj.keypoints[i].position.x, modelFeaturesObj.keypoints[i].position.y]);
+                userArr.push([userFeaturesObj.keypoints[i].position.x, userFeaturesObj.keypoints[i].position.y]);
         }
     }
-    return [modelObj, userObj, qualifiedFeatures];
+    return [modelArr, userArr, qualifiedFeatures];
 }
 
 function splitInFaceLegsTorso(featuresObj, qualifiedObj){
@@ -1418,9 +1425,9 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let modelFeaturesScaled = standardization(modelFeatures);
     let userFeaturesScaled = standardization(userFeatures)
 
-    // split features in 3 parts
-    let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
-    let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
+    // // split features in 3 parts
+    // let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
+    // let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
     return false;
 }
 
