@@ -1371,11 +1371,7 @@ function standardization(features){
 
     njFeatures = njFeatures.add(-fMin);
     njFeatures = njFeatures.divide((fMax-fMin));
-    return njFeatures;
-}
-
-function removeConfidenceLevel(features){
-
+    return njFeatures.tolist();
 }
 
 function removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj){
@@ -1396,8 +1392,22 @@ function removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj){
     return [modelArr, userArr, qualifiedFeatures];
 }
 
-function splitInFaceLegsTorso(featuresObj, qualifiedObj){
+function splitInFaceLegsTorso(featuresArr, qualifiedArr){
+    let faceFeatures = [];
+    let torsoFeatures = [];
+    let legsFeatures = [];
 
+    for(var i=0; i<qualifiedArr.length; i++){
+        if(faceFeatureList.includes(qualifiedArr[i])){
+            faceFeatures.push(featuresArr[i]);
+        }else if(torsoFeatureList.includes(qualifiedArr[i])){
+            torsoFeatures.push(featuresArr[i]);
+        }else if(legsFeatureList.includes(qualifiedArr[i])){
+            legsFeatures.push(featuresArr[i]);
+        }
+    }
+
+    return [faceFeatures, torsoFeatures, legsFeatures];
 }
 
 function affineTransformation(modelFeatures, userFeatures){
@@ -1425,9 +1435,9 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let modelFeaturesScaled = standardization(modelFeatures);
     let userFeaturesScaled = standardization(userFeatures)
 
-    // // split features in 3 parts
-    // let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
-    // let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
+    // split features in 3 parts
+    let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
+    let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
     return false;
 }
 
