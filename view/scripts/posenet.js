@@ -1365,13 +1365,10 @@ let legsFeatureList = [
 
 function standardization(features){
     // min max scale
-    let njFeatures = nj.array(features);
-    let fMin = njFeatures.min();
-    let fMax = njFeatures.max();
-
-    njFeatures = njFeatures.add(-fMin);
-    njFeatures = njFeatures.divide((fMax-fMin));
-    return njFeatures.tolist();
+    const {MinMaxScaler} = ml.preprocessing;
+    const scaler = new MinMaxScaler({featureRange: [0, 1]});
+    let scaledFeatures = scaler.fit_transform(features);
+    return scaledFeatures;
 }
 
 function removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj){
@@ -1411,7 +1408,10 @@ function splitInFaceLegsTorso(featuresArr, qualifiedArr){
 }
 
 function affineTransformation(modelFeatures, userFeatures){
-
+    modelFeatures = nj.array(modelFeatures);
+    userFeatures = nj.array(userFeatures);
+    let X = nj.stack([userFeatures, nj.ones(userFeatures.shape[0], 1)], 0);
+    console.log(X);
 }
 
 function maxDistanceAndRotation(modelFeatures, userFeatures, A){
@@ -1438,6 +1438,12 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     // split features in 3 parts
     let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
     let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
+
+    // affine transformation
+    let [transformedFace, AFace] = affineTransformation(modelFace, userFace);
+    // let [transformedTorso, ATorso] = affineTransformation(modelTorso, userTorso);
+    // let [transfromedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
+
     return false;
 }
 
