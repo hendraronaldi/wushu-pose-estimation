@@ -1417,13 +1417,18 @@ function splitInFaceLegsTorso(featuresArr, qualifiedArr){
 }
 
 function affineTransformation(modelFeatures, userFeatures){
+    // Handle empty features
+    if(userFeatures.length < 1){
+        return [[], Math.PI];
+    }
+
     let sx = 1;
     let sy = 1;
     let tx = 0;
     let ty = 0;
     let theta = 0;
 
-    let lr = 0.01;
+    let lr = 0.001;
     let n = userFeatures.length;
     let sumErr = 1;
     
@@ -1482,6 +1487,10 @@ function affineTransformation(modelFeatures, userFeatures){
 }
 
 function maxDistanceAndRotation(modelFeatures, transformedFeatures, theta){
+    if(transformedFeatures.length < 1){
+        return [1, 1, 1];
+    }
+
     // Max Euclidean Distance
     let maxDist = 0;
     let totalDist = 0;
@@ -1512,9 +1521,9 @@ function maxDistanceAndRotation(modelFeatures, transformedFeatures, theta){
 function getSimilarityScore(maxDistances, avgDistances, rotations){
     maxScore = 100;
 
-    let faceScore = maxScore - (avgDistances.face + rotations.face) * 100;
-    let torsoScore = maxScore - (avgDistances.torso + rotations.torso) * 100;
-    let legsScore = maxScore - (avgDistances.legs + rotations.legs) * 100;
+    let faceScore = maxScore - (avgDistances.face + rotations.face) * 50;
+    let torsoScore = maxScore - (avgDistances.torso + rotations.torso) * 50;
+    let legsScore = maxScore - (avgDistances.legs + rotations.legs) * 50;
 
     return [faceScore, torsoScore, legsScore];
 }
@@ -1566,11 +1575,16 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
 
     // similarity score
     let [faceScore, torsoScore, legsScore] = getSimilarityScore(maxDistances, avgDistances, rotations);
+    let totalScore = 0.2*faceScore + 0.4*torsoScore + 0.4*legsScore;
+
     document.getElementById("face").innerHTML = faceScore;
     document.getElementById("torso").innerHTML = torsoScore;
     document.getElementById("legs").innerHTML = legsScore;
-    document.getElementById("total").innerHTML = (0.2*faceScore + 0.4*torsoScore + 0.4*legsScore)/3;
+    document.getElementById("total").innerHTML = totalScore;
 
+    if(totalScore >= 90){
+        return true;
+    }
     return false;
 }
 
