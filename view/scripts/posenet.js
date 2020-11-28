@@ -1367,8 +1367,16 @@ let legsFeatureList = [
 function standardization(features){
     // min max scale
     const {MinMaxScaler} = ml.preprocessing;
-    const scaler = new MinMaxScaler({featureRange: [0, 1]});
-    let scaledFeatures = scaler.fit_transform(features);
+    const scalerX = new MinMaxScaler({featureRange: [0, 1]});
+    const scalerY = new MinMaxScaler({featureRange: [0, 1]});
+
+    const X = features.map((arr) => {return arr[0]});
+    const Y = features.map((arr) => {return arr[1]});
+
+    const scaledX = scalerX.fit_transform(X);
+    const scaledY = scalerY.fit_transform(Y);
+    const scaledFeatures = scaledX.map((_, i) => {return [scaledX[i], scaledY[i]]});
+
     return scaledFeatures;
 }
 
@@ -1561,7 +1569,7 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     document.getElementById("face").innerHTML = faceScore;
     document.getElementById("torso").innerHTML = torsoScore;
     document.getElementById("legs").innerHTML = legsScore;
-    document.getElementById("total").innerHTML = (faceScore + torsoScore + legsScore)/3;
+    document.getElementById("total").innerHTML = (0.2*faceScore + 0.4*torsoScore + 0.4*legsScore)/3;
 
     return false;
 }
@@ -1582,7 +1590,7 @@ function setExampleImage() {
 function setup() {
   setExampleImage();
 
-  createCanvas(400, 400);
+  createCanvas(600, 600);
   video = createCapture(VIDEO);
   video.size(width, height);
 
