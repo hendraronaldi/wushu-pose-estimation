@@ -1409,128 +1409,106 @@ function splitInFaceLegsTorso(featuresArr, qualifiedArr){
 }
 
 function affineTransformation(modelFeatures, userFeatures){
-    //[0] is x offset
-    //[1] is x scale
-    //[2] is x rotation
-    //[3] is y offset
-    //[4] is y rotation
-    //[5] is y scale
+    let sx = 1;
+    let sy = 1;
+    let tx = 0;
+    let ty = 0;
+    let theta = 0;
 
-    let A = affineFromFeatures(modelFeatures, userFeatures);
+    let lr = 0.01;
+    let n = userFeatures.length;
+    let sumErr = 1;
+    
+    for(var j=0; j<1000; j++) {
+    	// least square error
+    	let sumErrX = 0;
+    	let sumErrY = 0;
+        
+        
+        let sxGrad = 0;
+        let syGrad = 0;
+        let txGrad = 0;
+        let tyGrad = 0;
+        let thetaGrad = 0;
+
+        for(var i=0; i<n; i++){
+            let errX = sx * Math.cos(theta) * userFeatures[i][0] - sy * Math.sin(theta) * userFeatures[i][1] + tx - modelFeatures[i][0];
+            let errY = sx * Math.sin(theta) * userFeatures[i][0] + sy * Math.cos(theta) * userFeatures[i][1] + ty - modelFeatures[i][1];
+
+            sumErrX += Math.pow(errX, 2);
+            sumErrY += Math.pow(errY, 2);
+
+            sxGrad += (Math.cos(theta) + Math.sin(theta)) * userFeatures[i][0] * (errX + errY);
+            syGrad += (Math.cos(theta) - Math.sin(theta)) * userFeatures[i][1] * (errX + errY);
+            txGrad += errX;
+            tyGrad += errY;
+            thetaGrad += (sx * userFeatures[i][0] * Math.cos(theta) - sy * userFeatures[i][1] * Math.sin(theta)) * errY -
+            (sx * userFeatures[i][0] * Math.sin(theta) + sy * userFeatures[i][1] * Math.cos(theta)) * errX;
+        }
+        
+        if(sumErr - (sumErrX + sumErrY) < 0.0001) {
+        	break;
+       	}
+
+        sumErr = sumErrX + sumErrY;
+        
+        if(sumErr < 0.001){
+        	break;
+        }
+
+        sx -= lr * sxGrad;
+        sy -= lr * syGrad;
+        tx -= lr * txGrad;
+        ty -= lr * tyGrad;
+        theta -= lr * thetaGrad;
+    }
+    
     let affMatrix = compose(
-        translate(A[0], A[3]),
-        rotate(Math.PI*A[2]/180, Math.PI*A[4]/180),
-        scale(A[1], A[5])
+        translate(tx, ty),
+        rotate(theta),
+        scale(sx, sy)
     );
 
     let transformedFeatures = applyToPoints(affMatrix, userFeatures);
-    
-    return [transformedFeatures, A];
+    return [transformedFeatures, theta];
 }
 
-function affineFromFeatures(modelFeatures, userFeatures) {
-
-    let sum_x = 0.0, sum_y = 0.0, sum_xy = 0.0, sum_xx = 0.0, sum_yy = 0.0
-    let sum_Lon = 0.0, sum_Lonx = 0.0, sum_Lony = 0.0
-    let sum_Lat = 0.0, sum_Latx = 0.0, sum_Laty = 0.0
-    let divisor = 0.0
-
-    let affine = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    if (modelFeatures.length < 3) {
-    	return null
-    }
-
-    for(var i=0; i < modelFeatures.length; i++){
-      sum_x += userFeatures[i][0]
-      sum_y += userFeatures[i][1]
-      sum_xy += userFeatures[i][0] * userFeatures[i][1]
-      sum_xx += userFeatures[i][0] * userFeatures[i][0]
-      sum_yy += userFeatures[i][1] * userFeatures[i][1]
-      sum_Lon += modelFeatures[i][0]
-      sum_Lonx += modelFeatures[i][0] * userFeatures[i][0]
-      sum_Lony += modelFeatures[i][0] * userFeatures[i][1]
-      sum_Lat += modelFeatures[i][1]
-      sum_Latx += modelFeatures[i][1] * userFeatures[i][0]
-      sum_Laty += modelFeatures[i][1] * userFeatures[i][1]
-    }
-
-    divisor = modelFeatures.length * (sum_xx * sum_yy - sum_xy * sum_xy)
-            + 2 * sum_x * sum_y * sum_xy - sum_y * sum_y * sum_xx
-            - sum_x * sum_x * sum_yy
-
-    /* -------------------------------------------------------------------- */
-    /*      If the divisor is zero, there is no valid solution.             */
-    /* -------------------------------------------------------------------- */
-    if (divisor === 0) {
-    	return null
-    }
-
-    /* -------------------------------------------------------------------- */
-    /*      Compute top/left origin.                                        */
-    /* -------------------------------------------------------------------- */
-
-    affine[0] = (sum_Lon * (sum_xx * sum_yy - sum_xy * sum_xy)
-                               + sum_Lonx * (sum_y * sum_xy - sum_x * sum_yy)
-                               + sum_Lony * (sum_x * sum_xy - sum_y * sum_xx))
-            / divisor
-
-    affine[3] = (sum_Lat * (sum_xx * sum_yy - sum_xy * sum_xy)
-                               + sum_Latx * (sum_y * sum_xy - sum_x * sum_yy)
-                               + sum_Laty * (sum_x * sum_xy - sum_y * sum_xx))
-            / divisor
-
-    /* -------------------------------------------------------------------- */
-    /*      Compute X related coefficients.                                 */
-    /* -------------------------------------------------------------------- */
-    affine[1] = (sum_Lon * (sum_y * sum_xy - sum_x * sum_yy)
-                               + sum_Lonx * (modelFeatures.length * sum_yy - sum_y * sum_y)
-                               + sum_Lony * (sum_x * sum_y - sum_xy * modelFeatures.length))
-            / divisor
-
-    affine[2] = (sum_Lon * (sum_x * sum_xy - sum_y * sum_xx)
-                               + sum_Lonx * (sum_x * sum_y - modelFeatures.length * sum_xy)
-                               + sum_Lony * (modelFeatures.length * sum_xx - sum_x * sum_x))
-            / divisor
-
-    /* -------------------------------------------------------------------- */
-    /*      Compute Y related coefficients.                                 */
-    /* -------------------------------------------------------------------- */
-    affine[4] = (sum_Lat * (sum_y * sum_xy - sum_x * sum_yy)
-                               + sum_Latx * (modelFeatures.length * sum_yy - sum_y * sum_y)
-                               + sum_Laty * (sum_x * sum_y - sum_xy * modelFeatures.length))
-            / divisor
-
-    affine[5] = (sum_Lat * (sum_x * sum_xy - sum_y * sum_xx)
-                               + sum_Latx * (sum_x * sum_y - modelFeatures.length * sum_xy)
-                               + sum_Laty * (modelFeatures.length * sum_xx - sum_x * sum_x))
-            / divisor
-
-
-    affine[0] += 0.5 * affine[1] + 0.5 * affine[2]
-    affine[3] += 0.5 * affine[4] + 0.5 * affine[5]
-
-    return affine
-}
-
-function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
+function maxDistanceAndRotation(modelFeatures, transformedFeatures, theta){
     // Max Euclidean Distance
     let maxDist = 0;
+    let totalDist = 0;
+
     for(var i=0; i < modelFeatures.length; i++){
         let dist = Math.sqrt(Math.pow((modelFeatures[i][0] - transformedFeatures[i][0]), 2) + 
         Math.pow((modelFeatures[i][1] - transformedFeatures[i][1]), 2));
+
+        totalDist += dist;
+
         if(dist > maxDist){
             maxDist = dist;
         }
     }
 
+    let avgDist = totalDist / modelFeatures.length;
+
     // Rotations
-    let rotations = Math.max(Math.abs(A[2]), Math.abs(A[4]));
-    return [maxDist, rotations];
+    let rotations = Math.abs((theta * 180 / Math.PI) % 360) ;
+    if (rotations > 180) {
+        rotations -= 180;
+    }
+    rotations /= 180; // scale rotations 0 to 1
+
+    return [maxDist, avgDist, rotations];
 }
 
-function getSimilarityScore(maxDistances, rotations){
+function getSimilarityScore(maxDistances, avgDistances, rotations){
+    maxScore = 100;
 
+    let faceScore = maxScore - (avgDistances.face + rotations.face) * 100;
+    let torsoScore = maxScore - (avgDistances.torso + rotations.torso) * 100;
+    let legsScore = maxScore - (avgDistances.legs + rotations.legs) * 100;
+
+    return [faceScore, torsoScore, legsScore];
 }
 
 function getSimilarity(modelFeaturesObj, userFeaturesObj) {
@@ -1556,14 +1534,20 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let [transformedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
 
     // max distance and rotations
-    let [maxDistFace, rotationFace] = maxDistanceAndRotation(modelFace, transformedFace, AFace);
-    let [maxDistTorso, rotationTorso] = maxDistanceAndRotation(modelTorso, transformedTorso, ATorso);
-    let [maxDistLegs, rotationLegs] = maxDistanceAndRotation(modelLegs, transformedLegs, ALegs);
+    let [maxDistFace, avgDistFace, rotationFace] = maxDistanceAndRotation(modelFace, transformedFace, AFace);
+    let [maxDistTorso, avgDistTorso, rotationTorso] = maxDistanceAndRotation(modelTorso, transformedTorso, ATorso);
+    let [maxDistLegs, avgDistLegs, rotationLegs] = maxDistanceAndRotation(modelLegs, transformedLegs, ALegs);
 
     let maxDistances = {
         face: maxDistFace,
         torso: maxDistTorso,
         legs: maxDistLegs
+    }
+
+    let avgDistances = {
+        face: avgDistFace,
+        torso: avgDistTorso,
+        legs: avgDistLegs
     }
 
     let rotations = {
@@ -1572,8 +1556,12 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
         legs: rotationLegs
     }
 
-    // similarity threshold
-    let simScore = getSimilarityScore(maxDistances, rotations);
+    // similarity score
+    let [faceScore, torsoScore, legsScore] = getSimilarityScore(maxDistances, avgDistances, rotations);
+    document.getElementById("face").innerHTML = faceScore;
+    document.getElementById("torso").innerHTML = torsoScore;
+    document.getElementById("legs").innerHTML = legsScore;
+    document.getElementById("total").innerHTML = (faceScore + torsoScore + legsScore)/3;
 
     return false;
 }
@@ -1594,7 +1582,7 @@ function setExampleImage() {
 function setup() {
   setExampleImage();
 
-  createCanvas(768, 576);
+  createCanvas(400, 400);
   video = createCapture(VIDEO);
   video.size(width, height);
 
