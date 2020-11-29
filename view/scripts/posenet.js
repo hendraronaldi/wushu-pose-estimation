@@ -1483,12 +1483,16 @@ function affineTransformation(modelFeatures, userFeatures){
     );
 
     let transformedFeatures = applyToPoints(affMatrix, userFeatures);
-    return [transformedFeatures, theta];
+    return [transformedFeatures, [sx, sy, theta, tx, ty]];
 }
 
-function maxDistanceAndRotation(modelFeatures, transformedFeatures, theta){
-    if(transformedFeatures.length < 1){
-        return [1, 1, 1];
+function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
+    let sx = A[0];
+    let sy = A[1];
+    let theta = A[2];
+
+    if(transformedFeatures.length < 1 || sx < 0 || sy < 0){
+        return [1, 1, 1]; // set distance and rotations to max
     }
 
     // Max Euclidean Distance
