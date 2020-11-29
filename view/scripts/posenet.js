@@ -1430,7 +1430,7 @@ function affineTransformation(modelFeatures, userFeatures){
 
     let lr = 0.001;
     let n = userFeatures.length;
-    let sumErr = 1;
+    let sumErr = 100;
     
     for(var j=0; j<1000; j++) {
     	// least square error
@@ -1459,7 +1459,7 @@ function affineTransformation(modelFeatures, userFeatures){
             (sx * userFeatures[i][0] * Math.sin(theta) + sy * userFeatures[i][1] * Math.cos(theta)) * errX;
         }
         
-        if(sumErr - (sumErrX + sumErrY) < 0.0001) {
+        if(Math.abs(sumErr - (sumErrX + sumErrY)) < 0.0001) {
         	break;
        	}
 
@@ -1521,9 +1521,9 @@ function maxDistanceAndRotation(modelFeatures, transformedFeatures, theta){
 function getSimilarityScore(maxDistances, avgDistances, rotations){
     maxScore = 100;
 
-    let faceScore = maxScore - (avgDistances.face + rotations.face) * 50;
-    let torsoScore = maxScore - (avgDistances.torso + rotations.torso) * 50;
-    let legsScore = maxScore - (avgDistances.legs + rotations.legs) * 50;
+    let faceScore = maxScore - (maxDistances.face + rotations.face) * 50;
+    let torsoScore = maxScore - (maxDistances.torso + rotations.torso) * 50;
+    let legsScore = maxScore - (maxDistances.legs + rotations.legs) * 50;
 
     return [faceScore, torsoScore, legsScore];
 }
