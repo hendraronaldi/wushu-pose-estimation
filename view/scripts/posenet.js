@@ -1316,8 +1316,11 @@ let options = {
     inputResolution: { width: 257, height: 200 },
     quantBytes: 2
 }
-let confidenceLevelThreshold = 0.5;
-let minFeaturesThreshold = 10;
+let confidenceLevelThreshold = 0.1;
+let minFaceFeaturesThreshold = 3;
+let minTorsoFeaturesThreshold = 4;
+let minLegsFeaturesThreshold = 4;
+let minFeaturesThreshold = minFaceFeaturesThreshold + minTorsoFeaturesThreshold + minLegsFeaturesThreshold;
 let featureList = [
     "Nose",
     "leftEye",
@@ -1491,7 +1494,7 @@ function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
     let sy = A[1];
     let theta = A[2];
 
-    if(transformedFeatures.length < 1 || sx < 0 || sy < 0){
+    if(transformedFeatures.length < 2 || sx < 0 || sy < 0){
         return [1, 1, 1]; // set distance and rotations to max
     }
 
@@ -1548,6 +1551,10 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     // split features in 3 parts
     let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
     let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
+
+    if(userFace.length < minFaceFeaturesThreshold || userTorso.length < minTorsoFeaturesThreshold || userLegs.length < minLegsFeaturesThreshold){
+        return false;
+    }
 
     // affine transformation
     let [transformedFace, AFace] = affineTransformation(modelFace, userFace);
@@ -1646,11 +1653,7 @@ function draw() {
 
   if(isSimilar) {
     alert("Congratulations!!");
-    if(idx == data.length - 1){
-      idx = 0;
-    }else{
-      idx++;
-    }
+    idx = Math.floor(Math.random() * data.length);
     isSimilar = !isSimilar;
     setExampleImage();
   }
@@ -1695,7 +1698,7 @@ function toggleModel(){
     var modelImg = document.getElementById('img-example');
     var toggleImg = document.getElementById('toggleModel');
     if(modelImg.style.display === 'none') {
-        modelImg.style.display = 'block';
+        modelImg.style.display = 'inline-block';
         toggleImg.innerHTML = 'Hide Image';
     } else {
         modelImg.style.display = 'none';
