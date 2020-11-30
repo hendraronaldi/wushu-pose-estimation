@@ -1302,7 +1302,7 @@ let data = JSON.parse(`{
 }`)
 // config
 let {scale, rotate, translate, compose, applyToPoints} = window.TransformationMatrix;
-let idx = 0;
+let idx = 1;
 let example;
 let exPoseData;
 let video;
@@ -1581,12 +1581,12 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let [faceScore, torsoScore, legsScore] = getSimilarityScore(maxDistances, avgDistances, rotations);
     let totalScore = 0.2*faceScore + 0.4*torsoScore + 0.4*legsScore;
 
-    document.getElementById("face").innerHTML = faceScore;
-    document.getElementById("torso").innerHTML = torsoScore;
-    document.getElementById("legs").innerHTML = legsScore;
-    document.getElementById("total").innerHTML = totalScore;
+    document.getElementById("face").innerHTML = Math.floor(faceScore);
+    document.getElementById("torso").innerHTML = Math.floor(torsoScore);
+    document.getElementById("legs").innerHTML = Math.floor(legsScore);
+    document.getElementById("total").innerHTML = Math.floor(totalScore);
 
-    if(totalScore >= 90){
+    if(totalScore >= 95){
         return true;
     }
     return false;
@@ -1608,7 +1608,8 @@ function setExampleImage() {
 function setup() {
   setExampleImage();
 
-  createCanvas(600, 600);
+  var canvas = createCanvas(360, 360);
+  canvas.parent('main');
   video = createCapture(VIDEO);
   video.size(width, height);
 
@@ -1632,7 +1633,8 @@ function setup() {
 }
 
 function modelReady() {
-  select('#status').html('Model Loaded');
+  document.getElementById('loading').style['display'] = 'none';
+  document.getElementById('main').style['display'] = 'block';
 }
 
 function draw() {
@@ -1686,4 +1688,17 @@ function drawSkeleton() {
       line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
     }
   }
+}
+
+// toggle model image
+function toggleModel(){
+    var modelImg = document.getElementById('img-example');
+    var toggleImg = document.getElementById('toggleModel');
+    if(modelImg.style.display === 'none') {
+        modelImg.style.display = 'block';
+        toggleImg.innerHTML = 'Hide Image';
+    } else {
+        modelImg.style.display = 'none';
+        toggleImg.innerHTML = 'Show Image';
+    }
 }
