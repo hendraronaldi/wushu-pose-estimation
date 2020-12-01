@@ -1,34 +1,95 @@
 let img;
 let poseNet;
 let poses = [];
+let idx = 0;
+let totalModel = 31;
 
-function setup() {
-    createCanvas(550, 565);
+let modelValid = false;
+let validModel = [];
+let invalidModel = [];
 
-    // create an image using the p5 dom library
-    // call modelReady() when it is loaded
-    img = createImg('assets/images/cqcw3.png', imageReady);
+function setupImage() {
+    img = createImg('assets/images/model/model'+idx+'.png', imageReady);
     // set the image size to the size of the canvas
     img.size(width, height);
 
     img.hide(); // hide the image in the browser
-    frameRate(1); // set the frameRate to 1 since we don't need it to be running quickly in this case
+    // frameRate(1); // set the frameRate to 1 since we don't need it to be running quickly in this case
+}
+
+function isModelValid(userFeaturesObj) {
+    // remove unqualified features
+    let [_, userFeatures, qualifiedFeatures] = removeUnqualifiedKeypoints(userFeaturesObj, userFeaturesObj);
+
+    // check qualified features threshold
+    if(qualifiedFeatures.length < minFeaturesThreshold){
+        return false;
+    }
+
+    // standardize features
+    let userFeaturesScaled = standardization(userFeatures)
+
+    // split features in 3 parts
+    let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
+
+    if(userFace.length < minFaceFeaturesThreshold || userTorso.length < minTorsoFeaturesThreshold || userLegs.length < minLegsFeaturesThreshold){
+        return false;
+    }
+
+    return true;
+}
+
+function setup() {
+    createCanvas(360, 360);
+
+    // create an image using the p5 dom library
+    // call modelReady() when it is loaded
+    setupImage()
 }
 
 // when the image is ready, then load up poseNet
 function imageReady(){
     // set some options
     let options = {
-        imageScaleFactor: 1,
-        minConfidence: 0.1
-    }
+        architecture: 'ResNet50',
+        outputStride: 32,
+        inputResolution: { width: 257, height: 200 },
+        quantBytes: 2
+    };
     
     // assign poseNet
     poseNet = ml5.poseNet(modelReady, options);
     // This sets up an event that listens to 'pose' events
     poseNet.on('pose', function (results) {
         poses = results;
-        console.log(JSON.stringify(results[0]));
+        console.log('model'+idx, poses[0].pose);
+        
+        if(poses && poses.length > 0) {
+            userFeaturesObj = {
+                score: poses[0].pose.score,
+                keypoints: poses[0].pose.keypoints
+            };
+            modelValid = isModelValid(userFeaturesObj);
+        }
+
+        if(modelValid){
+            validModel.push(idx);
+        }else{
+            invalidModel.push(idx);
+        }
+
+        idx++;
+        if(idx<totalModel){
+            // setupImage()
+            img = createImg('assets/images/model/model'+idx+'.png', modelReady);
+            // set the image size to the size of the canvas
+            img.size(width, height);
+    
+            img.hide(); 
+        } else {
+            console.log('valid models', validModel);
+            console.log('invalid models', invalidModel);
+        }
     });
 }
 
