@@ -4,6 +4,7 @@ let poses = [];
 let idx = 0;
 let totalModel = 31;
 
+let userFeaturesObj;
 let modelValid = false;
 let validModel = [];
 let invalidModel = [];
@@ -62,7 +63,6 @@ function imageReady(){
     // This sets up an event that listens to 'pose' events
     poseNet.on('pose', function (results) {
         poses = results;
-        console.log('model'+idx, poses[0].pose);
         
         if(poses && poses.length > 0) {
             userFeaturesObj = {
@@ -73,9 +73,11 @@ function imageReady(){
         }
 
         if(modelValid){
-            validModel.push(idx);
+            userFeaturesObj.filename = 'assets/images/model/model'+idx+'.png';
+            validModel.push(userFeaturesObj);
+            modelValid = false;
         }else{
-            invalidModel.push(idx);
+            invalidModel.push(userFeaturesObj);
         }
 
         idx++;
@@ -87,8 +89,8 @@ function imageReady(){
     
             img.hide(); 
         } else {
-            console.log('valid models', validModel);
-            console.log('invalid models', invalidModel);
+            // print valid model
+            console.log(JSON.stringify(validModel));
         }
     });
 }
