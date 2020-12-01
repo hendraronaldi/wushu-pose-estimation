@@ -37,6 +37,7 @@ func viewHTMLRouter(router *gin.Engine) {
 	router.Static("/scripts", "view/scripts")
 	router.Static("/assets", "view/assets")
 	router.Static("/data", "view/data")
+	router.Static("/css", "view/css")
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{
@@ -46,6 +47,24 @@ func viewHTMLRouter(router *gin.Engine) {
 
 	router.GET("/set", func(c *gin.Context) {
 		c.HTML(200, "set.html", gin.H{
+			"timestamp": time.Now().Unix(),
+		})
+	})
+
+	router.GET("/test", func(c *gin.Context) {
+		c.HTML(200, "index3.html", gin.H{
+			"timestamp": time.Now().Unix(),
+		})
+	})
+
+	router.GET("/test2", func(c *gin.Context) {
+		c.HTML(200, "index4.html", gin.H{
+			"timestamp": time.Now().Unix(),
+		})
+	})
+
+	router.GET("/agility-test", func(c *gin.Context) {
+		c.HTML(200, "agility.html", gin.H{
 			"timestamp": time.Now().Unix(),
 		})
 	})
