@@ -36,20 +36,39 @@ button {
     font-size: 14px;
     margin-top: 20px;
     margin-bottom: 20px;
+    margin-right: 10px;
     padding: 5px 10px 5px 10px;
     border-radius: 5px;
+    border-style: solid;
     transition: 0.2s;
-    color: black;
     text-align: center;
-    background-color: white;
-    border-color: black;
     box-shadow: none;
 }
 
 button:hover {
+    cursor: pointer;
+}
+
+#toggleModel {
+    color: black;
+    background-color: white;
+    border-color: black;
+}
+
+#toggleModel:hover {
     color: white;
     background-color: black;
-    cursor: pointer;
+}
+
+#btnNewModel {
+    color: white;
+    background-color: rgb(73, 61, 240);
+    border-color: rgb(73, 61, 240);
+}
+
+#btnNewModel:hover {
+    color: rgb(73, 61, 240);
+    background-color: white;
 }
 
 #img-example {
