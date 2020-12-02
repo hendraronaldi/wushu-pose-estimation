@@ -217,61 +217,37 @@ function getSimilarityScore(maxDistances, avgDistances, rotations){
     return [faceScore, torsoScore, legsScore];
 }
 
-function getSimilarity(modelFeaturesObj, userFeaturesObj) {
-    // remove unqualified features
-    let [modelFeatures, userFeatures, qualifiedFeatures] = removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj);
 
-    // check qualified features threshold
-    if(qualifiedFeatures.length < minFeaturesThreshold){
-        return false;
+// A function to draw ellipses over the detected keypoints
+function drawKeypoints()  {
+    // Loop through all the poses detected
+    for (let i = 0; i < poses.length; i++) {
+      // For each pose detected, loop through all the keypoints
+      let pose = poses[i].pose;
+      for (let j = 0; j < pose.keypoints.length; j++) {
+        // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+        let keypoint = pose.keypoints[j];
+        // Only draw an ellipse is the pose probability is bigger than 0.2
+        if (keypoint.score > 0.2) {
+          fill(255, 0, 0);
+          noStroke();
+          ellipse(keypoint.position.x, keypoint.position.y, 10, 10);
+        }
+      }
     }
-
-    // standardize features
-    let modelFeaturesScaled = standardization(modelFeatures);
-    let userFeaturesScaled = standardization(userFeatures)
-
-    // split features in 3 parts
-    let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
-    let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
-
-    if(userFace.length < minFaceFeaturesThreshold || userTorso.length < minTorsoFeaturesThreshold || userLegs.length < minLegsFeaturesThreshold){
-        return false;
+  }
+  
+  // A function to draw the skeletons
+  function drawSkeleton() {
+    // Loop through all the skeletons detected
+    for (let i = 0; i < poses.length; i++) {
+      let skeleton = poses[i].skeleton;
+      // For every skeleton, loop through all body connections
+      for (let j = 0; j < skeleton.length; j++) {
+        let partA = skeleton[j][0];
+        let partB = skeleton[j][1];
+        stroke(255, 0, 0);
+        line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
+      }
     }
-
-    // affine transformation
-    let [transformedFace, AFace] = affineTransformation(modelFace, userFace);
-    let [transformedTorso, ATorso] = affineTransformation(modelTorso, userTorso);
-    let [transformedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
-
-    // max distance and rotations
-    let [maxDistFace, avgDistFace, rotationFace] = maxDistanceAndRotation(modelFace, transformedFace, AFace);
-    let [maxDistTorso, avgDistTorso, rotationTorso] = maxDistanceAndRotation(modelTorso, transformedTorso, ATorso);
-    let [maxDistLegs, avgDistLegs, rotationLegs] = maxDistanceAndRotation(modelLegs, transformedLegs, ALegs);
-
-    let maxDistances = {
-        face: maxDistFace,
-        torso: maxDistTorso,
-        legs: maxDistLegs
-    }
-
-    let avgDistances = {
-        face: avgDistFace,
-        torso: avgDistTorso,
-        legs: avgDistLegs
-    }
-
-    let rotations = {
-        face: rotationFace,
-        torso: rotationTorso,
-        legs: rotationLegs
-    }
-
-    // similarity score
-    let [faceScore, torsoScore, legsScore] = getSimilarityScore(maxDistances, avgDistances, rotations);
-    let totalScore = 0.2*faceScore + 0.4*torsoScore + 0.4*legsScore;
-
-    if(totalScore >= 95){
-        return true;
-    }
-    return false;
-}
+  }
