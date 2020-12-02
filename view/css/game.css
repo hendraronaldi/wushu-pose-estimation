@@ -24,6 +24,10 @@
     display: none;
 }
 
+.score-container {
+    margin-top: 40px;
+}
+
 .score {
     font-size: 18px;
 }
