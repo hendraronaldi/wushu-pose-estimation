@@ -59,6 +59,11 @@ function setIncorrectPoseStatus() {
     document.getElementById("pose-status-duration").innerHTML = 'Incorrect Pose!!';
 }
 
+function setBadPoseStatus() {
+    document.getElementById('pose-status').style['color'] = 'red';
+    document.getElementById("pose-status-duration").innerHTML = 'Pose not detected!! Ensure the whole body was seen!';
+}
+
 function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let minScore = modelFeaturesObj.score * 100;
     if(minScore > 93){
@@ -73,7 +78,7 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
         currentFrame = 0;
         prevMaxScore = 0;
         restartCorrectTime();
-        setIncorrectPoseStatus();
+        setBadPoseStatus();
         return false;
     }
 
@@ -89,7 +94,7 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
         currentFrame = 0;
         prevMaxScore = 0;
         restartCorrectTime();
-        setIncorrectPoseStatus();
+        setBadPoseStatus();
         return false;
     }
 
