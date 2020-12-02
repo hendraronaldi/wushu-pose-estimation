@@ -45,12 +45,6 @@ func viewHTMLRouter(router *gin.Engine) {
 		})
 	})
 
-	router.GET("/set", func(c *gin.Context) {
-		c.HTML(200, "set.html", gin.H{
-			"timestamp": time.Now().Unix(),
-		})
-	})
-
 	router.GET("/poseSimilarity", func(c *gin.Context) {
 		c.HTML(200, "poseSimilarity.html", gin.H{
 			"timestamp": time.Now().Unix(),
@@ -63,7 +57,7 @@ func viewHTMLRouter(router *gin.Engine) {
 		})
 	})
 
-	router.GET("/agility-test", func(c *gin.Context) {
+	router.GET("/agility", func(c *gin.Context) {
 		c.HTML(200, "agility.html", gin.H{
 			"timestamp": time.Now().Unix(),
 		})
