@@ -51,14 +51,14 @@ func viewHTMLRouter(router *gin.Engine) {
 		})
 	})
 
-	router.GET("/test", func(c *gin.Context) {
-		c.HTML(200, "index3.html", gin.H{
+	router.GET("/poseSimilarity", func(c *gin.Context) {
+		c.HTML(200, "poseSimilarity.html", gin.H{
 			"timestamp": time.Now().Unix(),
 		})
 	})
 
-	router.GET("/test2", func(c *gin.Context) {
-		c.HTML(200, "index4.html", gin.H{
+	router.GET("/modelValidation", func(c *gin.Context) {
+		c.HTML(200, "modelValidation.html", gin.H{
 			"timestamp": time.Now().Unix(),
 		})
 	})
