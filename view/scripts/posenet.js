@@ -7,8 +7,10 @@
 ml5 Example
 PoseNet example using p5.js
 === */
-let score = 0;
+let totalScore = 0;
 let data = imgModels;
+let startCorrect = new Date();
+let correctDurationThreshold = 2000; // in miliseconds
 
 // config
 let {scale, rotate, translate, compose, applyToPoints} = window.TransformationMatrix;
@@ -76,6 +78,32 @@ let legsFeatureList = [
     "leftAnkle",
     "rightAnkle"
 ]
+
+function restartCorrectTime(){
+    startCorrect = new Date();
+}
+
+function isCompleteCorrectDuration(timeLeft) {
+    if(timeLeft <= 0) {
+        return true;
+    }
+    return false;
+}
+
+function setCorrectPoseStatus() {
+    let endCorrect = new Date();
+    let timeLeft = correctDurationThreshold - (endCorrect.getTime() - startCorrect.getTime());
+
+    document.getElementById('pose-status').style['color'] = 'green';
+    document.getElementById("pose-status-duration").innerHTML = `Correct! Keep the pose for ${Math.round(timeLeft/1000 * 10) / 10} s left`;
+
+    return timeLeft;
+}
+
+function setIncorrectPoseStatus() {
+    document.getElementById('pose-status').style['color'] = 'red';
+    document.getElementById("pose-status-duration").innerHTML = 'Incorrect Pose!!';
+}
 
 function standardization(features){
     // min max scale
@@ -246,11 +274,14 @@ function getSimilarityScore(maxDistances, avgDistances, rotations){
 }
 
 function getSimilarity(modelFeaturesObj, userFeaturesObj) {
+    let minScore = modelFeaturesObj.score * 100;
     // remove unqualified features
     let [modelFeatures, userFeatures, qualifiedFeatures] = removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj);
 
     // check qualified features threshold
     if(qualifiedFeatures.length < minFeaturesThreshold){
+        restartCorrectTime();
+        setIncorrectPoseStatus();
         return false;
     }
 
@@ -263,6 +294,8 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
 
     if(userFace.length < minFaceFeaturesThreshold || userTorso.length < minTorsoFeaturesThreshold || userLegs.length < minLegsFeaturesThreshold){
+        restartCorrectTime();
+        setIncorrectPoseStatus();
         return false;
     }
 
@@ -296,16 +329,25 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
 
     // similarity score
     let [faceScore, torsoScore, legsScore] = getSimilarityScore(maxDistances, avgDistances, rotations);
-    let totalScore = 0.2*faceScore + 0.4*torsoScore + 0.4*legsScore;
+    let currentScore = 0.2*faceScore + 0.4*torsoScore + 0.4*legsScore;
 
     document.getElementById("face").innerHTML = Math.floor(faceScore);
     document.getElementById("torso").innerHTML = Math.floor(torsoScore);
     document.getElementById("legs").innerHTML = Math.floor(legsScore);
-    document.getElementById("total").innerHTML = Math.floor(totalScore);
+    document.getElementById("current").innerHTML = Math.floor(currentScore);
 
-    if(totalScore >= 80){
-        return true;
+    if(currentScore >= minScore * 0.85){
+        let correctTimeLeft = setCorrectPoseStatus();
+
+        if(isCompleteCorrectDuration(correctTimeLeft)){
+            totalScore += currentScore;
+            document.getElementById("total").innerHTML = Math.floor(totalScore);
+            return true;
+        }
+        return false;
     }
+    restartCorrectTime();
+    setIncorrectPoseStatus();
     return false;
 }
 
@@ -367,7 +409,7 @@ function draw() {
   drawSkeleton();
 
   if(isSimilar) {
-    alert("Congratulations!!");
+    restartCorrectTime();
     isSimilar = !isSimilar;
     generateNewModel();
   }
