@@ -11,6 +11,9 @@ let totalScore = 0;
 let data = imgModels;
 let startCorrect = new Date();
 let correctDurationThreshold = 2000; // in miliseconds
+let checkPerFrames = 20;
+let currentFrame = 0;
+let prevMaxScore = 0;
 
 // config
 let {scale, rotate, translate, compose, applyToPoints} = window.TransformationMatrix;
@@ -280,6 +283,8 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
 
     // check qualified features threshold
     if(qualifiedFeatures.length < minFeaturesThreshold){
+        currentFrame = 0;
+        prevMaxScore = 0;
         restartCorrectTime();
         setIncorrectPoseStatus();
         return false;
@@ -294,6 +299,8 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
 
     if(userFace.length < minFaceFeaturesThreshold || userTorso.length < minTorsoFeaturesThreshold || userLegs.length < minLegsFeaturesThreshold){
+        currentFrame = 0;
+        prevMaxScore = 0;
         restartCorrectTime();
         setIncorrectPoseStatus();
         return false;
@@ -335,6 +342,19 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     document.getElementById("torso").innerHTML = Math.floor(torsoScore);
     document.getElementById("legs").innerHTML = Math.floor(legsScore);
     document.getElementById("current").innerHTML = Math.floor(currentScore);
+
+    currentFrame++;
+    currentFrame %= checkPerFrames;
+
+    if(prevMaxScore > currentScore && currentScore >= minScore * 0.6) {
+        currentScore = prevMaxScore;
+    } else {
+        prevMaxScore = currentScore;
+    }
+
+    if(currentFrame == 0) {
+        prevMaxScore = 0;
+    }
 
     if(currentScore >= minScore * 0.85){
         let correctTimeLeft = setCorrectPoseStatus();
@@ -409,6 +429,8 @@ function draw() {
   drawSkeleton();
 
   if(isSimilar) {
+    currentFrame = 0;
+    prevMaxScore = 0;
     restartCorrectTime();
     isSimilar = !isSimilar;
     generateNewModel();
