@@ -11,8 +11,8 @@
 
 .img-loading {
     margin: auto;
-    max-width: 600px;
-    max-height: 600px;
+    max-width: 400px;
+    max-height: 400px;
 }
 
 .img-loading > img {
@@ -30,6 +30,10 @@
 
 .total-score {
     font-weight: bold;
+}
+
+#pose-status {
+    font-size: 24px !important;
 }
 
 button {
