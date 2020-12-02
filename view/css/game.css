@@ -68,6 +68,17 @@ button:hover {
     background-color: black;
 }
 
+#toggleKeypoints {
+    color: rgb(122, 36, 36);
+    background-color: white;
+    border-color: rgb(122, 36, 36);
+}
+
+#toggleKeypoints:hover {
+    color: white;
+    background-color: rgb(122, 36, 36);
+}
+
 #btnNewModel {
     color: white;
     background-color: rgb(73, 61, 240);

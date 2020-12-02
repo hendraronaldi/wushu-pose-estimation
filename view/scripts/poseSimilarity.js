@@ -31,6 +31,7 @@ let options = {
     inputResolution: { width: 257, height: 200 },
     quantBytes: 2
 }
+let showKeypoints = true;
 
 function restartCorrectTime(){
     startCorrect = new Date();
@@ -211,8 +212,10 @@ function draw() {
   image(video, 0, 0, width, height);
 
   // We can call both functions to draw all keypoints and the skeletons
-  drawKeypoints();
-  drawSkeleton();
+  if(showKeypoints){
+    drawKeypoints();
+    drawSkeleton();
+  }
 
   if(isSimilar) {
     currentFrame = 0;
@@ -234,4 +237,9 @@ function toggleModel(){
         modelImg.style.display = 'none';
         toggleImg.innerHTML = 'Show Image';
     }
+}
+
+// toggle model image
+function toggleKeypoints(){
+    showKeypoints = !showKeypoints;
 }
