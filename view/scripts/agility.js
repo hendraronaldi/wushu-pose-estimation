@@ -18,19 +18,19 @@ let bodyPartKeypoint = {};
 let bodyParts = [
   "leftWrist",
   "rightWrist",
-  "leftAnkle",
-  "rightAnkle"
+  // "leftAnkle",
+  // "rightAnkle"
 ];
 
 let bodyPartsColor = {
   leftWrist: '#00D506',
   rightWrist: '#0037D5',
-  leftAnkle: '#FF9002',
-  rightAnkle: '#E40000'
+  // leftAnkle: '#FF9002',
+  // rightAnkle: '#E40000'
 };
 
 let idx = Math.floor(Math.random() * bodyParts.length);
-let circleX = Math.random() * (window.innerWidth - 2*diameter) + diameter;
+let circleX = Math.random() * (0.5*window.innerWidth - 2*diameter) + diameter;
 let circleY = Math.random() * (0.2*window.innerHeight - 2*diameter) + diameter + (idx > 1 ? 0.8*window.innerHeight:0);
 let distanceThreshold = 0.25;
 
@@ -141,6 +141,6 @@ function drawScore(){
 
 function generateNewPosition() {
   idx = Math.floor(Math.random() * bodyParts.length);
-  circleX = Math.random() * (window.innerWidth - 2*diameter) + diameter;
+  circleX = Math.random() * (0.5*window.innerWidth - 2*diameter) + diameter;
   circleY = Math.random() * (0.2*window.innerHeight - 2*diameter) + (idx > 1 ? 0.8*window.innerHeight:0);
 }
