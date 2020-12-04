@@ -62,4 +62,10 @@ func viewHTMLRouter(router *gin.Engine) {
 			"timestamp": time.Now().Unix(),
 		})
 	})
+
+	router.GET("/avoidObstacle", func(c *gin.Context) {
+		c.HTML(200, "avoidObstacle.html", gin.H{
+			"timestamp": time.Now().Unix(),
+		})
+	})
 }
