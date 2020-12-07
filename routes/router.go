@@ -68,4 +68,10 @@ func viewHTMLRouter(router *gin.Engine) {
 			"timestamp": time.Now().Unix(),
 		})
 	})
+
+	router.GET("/protectBody", func(c *gin.Context) {
+		c.HTML(200, "protectBody.html", gin.H{
+			"timestamp": time.Now().Unix(),
+		})
+	})
 }
