@@ -1,4 +1,4 @@
-let confidenceLevelThreshold = 0.5;
+let confidenceLevelThreshold = 0;
 let minFaceFeaturesThreshold = 3;
 let minTorsoFeaturesThreshold = 5;
 let minLegsFeaturesThreshold = 5;
@@ -21,7 +21,7 @@ let featureList = [
     "rightKnee",
     "leftAnkle",
     "rightAnkle"
-]
+];
 
 let faceFeatureList = [
     "Nose",
@@ -29,7 +29,7 @@ let faceFeatureList = [
     "rightEye",
     "leftEar",
     "rightEar"
-]
+];
 
 let torsoFeatureList = [
     "leftShoulder",
@@ -38,7 +38,7 @@ let torsoFeatureList = [
     "rightElbow",
     "leftWrist",
     "rightWrist"
-]
+];
 
 let legsFeatureList = [
     "leftHip",
@@ -47,7 +47,7 @@ let legsFeatureList = [
     "rightKnee",
     "leftAnkle",
     "rightAnkle"
-]
+];
 
 function standardization(features){
     // min max scale
@@ -65,9 +65,16 @@ function standardization(features){
     return scaledFeatures;
 }
 
+function normalization(features){
+    // normalize
+    const {normalize} = ml.preprocessing;
+    return normalize(features);
+}
+
 function removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj){
     let qualifiedFeatures = [];
     let modelArr = [];
+    let modelConfArr = [];
     let userArr = [];
 
     for(var i=0; i<featureList.length; i++){
@@ -78,9 +85,11 @@ function removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj){
 
                 modelArr.push([modelFeaturesObj.keypoints[i].position.x, modelFeaturesObj.keypoints[i].position.y]);
                 userArr.push([userFeaturesObj.keypoints[i].position.x, userFeaturesObj.keypoints[i].position.y]);
+
+                modelConfArr.push(modelFeaturesObj.keypoints[i].score);
         }
     }
-    return [modelArr, userArr, qualifiedFeatures];
+    return [modelArr, userArr, modelConfArr, qualifiedFeatures];
 }
 
 function splitInFaceLegsTorso(featuresArr, qualifiedArr){
@@ -171,10 +180,11 @@ function affineTransformation(modelFeatures, userFeatures){
     return [transformedFeatures, [sx, sy, theta, tx, ty]];
 }
 
-function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
+function maxDistanceAndRotation(modelFeatures, transformedFeatures, A, confidenceScores){
     let sx = A[0];
     let sy = A[1];
     let theta = A[2];
+    let totalConfidenceScore = 0;
 
     if(transformedFeatures.length < 2 || sx < 0 || sy < 0){
         return [1, 1, 1]; // set distance and rotations to max
@@ -185,8 +195,9 @@ function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
     let totalDist = 0;
 
     for(var i=0; i < modelFeatures.length; i++){
-        let dist = Math.sqrt(Math.pow((modelFeatures[i][0] - transformedFeatures[i][0]), 2) + 
+        let dist = confidenceScores[i] * Math.sqrt(Math.pow((modelFeatures[i][0] - transformedFeatures[i][0]), 2) + 
         Math.pow((modelFeatures[i][1] - transformedFeatures[i][1]), 2));
+        totalConfidenceScore += confidenceScores[i];
 
         totalDist += dist;
 
@@ -195,7 +206,7 @@ function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
         }
     }
 
-    let avgDist = totalDist / modelFeatures.length;
+    let avgDist = totalDist / totalConfidenceScore;
 
     // Rotations
     let rotations = Math.abs((theta * 180 / Math.PI) % 360) ;
@@ -204,7 +215,7 @@ function maxDistanceAndRotation(modelFeatures, transformedFeatures, A){
     }
     rotations /= 180; // scale rotations 0 to 1
 
-    return [maxDist, avgDist, rotations];
+    return [maxDist, avgDist, rotations, totalConfidenceScore];
 }
 
 function getSimilarityScore(maxDistances, avgDistances, rotations){
@@ -215,6 +226,79 @@ function getSimilarityScore(maxDistances, avgDistances, rotations){
     let legsScore = maxScore - (maxDistances.legs + rotations.legs) * 50;
 
     return [faceScore, torsoScore, legsScore];
+}
+
+function getCosineSimilarity(A, B){
+    A = normalization(A);
+    B = normalization(B);
+    var dotproduct = 0;
+    var mA = 0;
+    var mB = 0;
+    for(var i = 0; i < A.length; i++){
+        dotproduct += (A[i][0] * B[i][0]);
+        mA += (A[i][0]*A[i][0]);
+        mB += (B[i][0]*B[i][0]);
+
+        dotproduct += (A[i][1] * B[i][1]);
+        mA += (A[i][1]*A[i][1]);
+        mB += (B[i][1]*B[i][1]);
+    }
+    mA = Math.sqrt(mA);
+    mB = Math.sqrt(mB);
+    var similarity = (dotproduct)/(mA*mB);
+    return similarity;
+}
+
+function getBodyPartCosineSimilarity(modelFace, modelTorso, modelLegs, userFace, userTorso, userLegs, modelConfArr){
+    let model = [...modelFace, ...modelTorso, ...modelLegs];
+    let user = [...userFace, ...userTorso, ...userLegs];
+
+    let cosineSimilarity = 0;
+    let confidenceScores = 0;
+
+    let degToCheck = [
+        ['leftElbow', 'leftWrist', 'leftShoulder'],
+        ['rightElbow', 'rightWrist', 'rightShoulder'],
+        ['leftShoulder', 'leftElbow', 'leftHip'],
+        ['rightShoulder', 'rightElbow', 'rightHip'],
+        ['leftKnee', 'leftAnkle', 'leftHip'],
+        ['rightKnee', 'rightAnkle', 'rightHip'],
+        ['leftHip', 'leftKnee', 'leftShoulder'],
+        ['rightHip', 'rightKnee', 'rightShoulder'],
+    ];
+
+    degToCheck.map((arr) => {
+        let modelPart = [
+            [
+                [model[featureList.indexOf(arr[1])][0] - model[featureList.indexOf(arr[0])][0],
+                model[featureList.indexOf(arr[1])][1] - model[featureList.indexOf(arr[0])][1]]
+            ],
+            [
+                [model[featureList.indexOf(arr[2])][0] - model[featureList.indexOf(arr[0])][0],
+                model[featureList.indexOf(arr[2])][1] - model[featureList.indexOf(arr[0])][1]]
+            ]
+        ];
+
+        let userPart = [
+            [
+                [user[featureList.indexOf(arr[1])][0] - user[featureList.indexOf(arr[0])][0],
+                user[featureList.indexOf(arr[1])][1] - user[featureList.indexOf(arr[0])][1]]
+            ],
+            [
+                [user[featureList.indexOf(arr[2])][0] - user[featureList.indexOf(arr[0])][0],
+                user[featureList.indexOf(arr[2])][1] - user[featureList.indexOf(arr[0])][1]]
+            ]
+        ];
+
+        let modelCosine = getCosineSimilarity(modelPart[0], modelPart[1]);
+        let userCosine = getCosineSimilarity(userPart[0], userPart[1]);
+        let confidenceScore = (modelConfArr.indexOf(arr[0]) + modelConfArr.indexOf(arr[1]) + modelConfArr.indexOf(arr[2]))/3;
+
+        cosineSimilarity += confidenceScore * Math.abs(modelCosine - userCosine);
+        confidenceScores += confidenceScore;
+    })
+
+    return cosineSimilarity / confidenceScores;
 }
 
 

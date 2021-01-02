@@ -16,6 +16,7 @@ let currentFrame = 0;
 let prevMaxScore = 0;
 
 // config
+let recordData = {};
 let {scale, rotate, translate, compose, applyToPoints} = window.TransformationMatrix;
 let idx = Math.floor(Math.random() * data.length);
 let example;
@@ -55,7 +56,7 @@ function setCorrectPoseStatus() {
 }
 
 function setIncorrectPoseStatus() {
-    document.getElementById('pose-status').style['color'] = 'red';
+    document.getElementById('pose-status').style['color'] = 'orange';
     document.getElementById("pose-status-duration").innerHTML = 'Incorrect Pose!!';
 }
 
@@ -65,13 +66,8 @@ function setBadPoseStatus() {
 }
 
 function getSimilarity(modelFeaturesObj, userFeaturesObj) {
-    let minScore = modelFeaturesObj.score * 100;
-    if(minScore > 93){
-        minScore = 93;
-    }
-
     // remove unqualified features
-    let [modelFeatures, userFeatures, qualifiedFeatures] = removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj);
+    let [modelFeatures, userFeatures, modelConfidences, qualifiedFeatures] = removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj);
 
     // check qualified features threshold
     if(qualifiedFeatures.length < minFeaturesThreshold){
@@ -103,10 +99,17 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let [transformedTorso, ATorso] = affineTransformation(modelTorso, userTorso);
     let [transformedLegs, ALegs] = affineTransformation(modelLegs, userLegs);
 
+    // average joint cosine similarity
+    let avgCosineSimilarity = getBodyPartCosineSimilarity(modelFace, 
+        modelTorso, modelLegs, transformedFace, transformedTorso, transformedLegs, modelConfidences);
+
     // max distance and rotations
-    let [maxDistFace, avgDistFace, rotationFace] = maxDistanceAndRotation(modelFace, transformedFace, AFace);
-    let [maxDistTorso, avgDistTorso, rotationTorso] = maxDistanceAndRotation(modelTorso, transformedTorso, ATorso);
-    let [maxDistLegs, avgDistLegs, rotationLegs] = maxDistanceAndRotation(modelLegs, transformedLegs, ALegs);
+    let [maxDistFace, avgDistFace, rotationFace, totalConfFace] = maxDistanceAndRotation(modelFace, 
+        transformedFace, AFace, modelConfidences.slice(0, faceFeatureList.length));
+    let [maxDistTorso, avgDistTorso, rotationTorso, totalConfTorso] = maxDistanceAndRotation(modelTorso, 
+        transformedTorso, ATorso, modelConfidences.slice(faceFeatureList.length, faceFeatureList.length + torsoFeatureList.length));
+    let [maxDistLegs, avgDistLegs, rotationLegs, totalConfLegs] = maxDistanceAndRotation(modelLegs, 
+        transformedLegs, ALegs, modelConfidences.slice(faceFeatureList.length + torsoFeatureList.length, featureList.length));
 
     let maxDistances = {
         face: maxDistFace,
@@ -126,47 +129,34 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
         legs: rotationLegs
     }
 
-    // similarity score
-    let [faceScore, torsoScore, legsScore] = getSimilarityScore(maxDistances, avgDistances, rotations);
-    let currentScore = 0.2*faceScore + 0.4*torsoScore + 0.4*legsScore;
+    let allAvgDist = maxDistFace + maxDistTorso + maxDistLegs;
+    // let allAvgDist = avgDistFace + avgDistTorso + avgDistLegs;
 
-    document.getElementById("face").innerHTML = Math.floor(faceScore);
-    document.getElementById("torso").innerHTML = Math.floor(torsoScore);
-    document.getElementById("legs").innerHTML = Math.floor(legsScore);
-    document.getElementById("current").innerHTML = Math.floor(currentScore);
+    document.getElementById("face").innerHTML = avgCosineSimilarity;
+    document.getElementById("torso").innerHTML = allAvgDist;
 
-    currentFrame++;
-    currentFrame %= checkPerFrames;
-
-    if(prevMaxScore > currentScore && currentScore >= minScore * 0.8) {
-        currentScore = prevMaxScore;
-    } else {
-        prevMaxScore = currentScore;
-    }
-
-    if(currentFrame == 0) {
-        prevMaxScore = 0;
-    }
-
-    if(currentScore >= minScore){
+    if(avgCosineSimilarity <= 0.3 & allAvgDist <= 0.3){
         let correctTimeLeft = setCorrectPoseStatus();
 
         if(isCompleteCorrectDuration(correctTimeLeft)){
-            totalScore += currentScore;
+            totalScore += 100;
             document.getElementById("total").innerHTML = Math.floor(totalScore);
             return true;
         }
         return false;
     }
+
     restartCorrectTime();
     setIncorrectPoseStatus();
     return false;
+
 }
 
 function setExampleImage() {
   // get example
   example = data[idx];
   exFilename = example.filename;
+  recordData[exFilename] = {};
   // exResult = example.result;
   imgObj = document.getElementById("img-example");
   imgObj.src = exFilename;
