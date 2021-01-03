@@ -7,6 +7,7 @@
 ml5 Example
 PoseNet example using p5.js
 === */
+let currentScore = 0;
 let totalScore = 0;
 let data = imgModels;
 let startCorrect = new Date();
@@ -18,6 +19,7 @@ let prevMaxScore = 0;
 // config
 let goodAudio = new Audio('assets/audio/good.mp3');
 let excellentAudio = new Audio('assets/audio/excellent.mp3');
+let badAudio = new Audio('assets/audio/bad.mp3');
 let recordData = {};
 let {scale, rotate, translate, compose, applyToPoints} = window.TransformationMatrix;
 let idx = Math.floor(Math.random() * data.length);
@@ -75,15 +77,6 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     // remove unqualified features
     let [modelFeatures, userFeatures, modelConfidences, qualifiedFeatures] = removeUnqualifiedKeypoints(modelFeaturesObj, userFeaturesObj);
 
-    // check qualified features threshold
-    if(qualifiedFeatures.length < minFeaturesThreshold){
-        currentFrame = 0;
-        prevMaxScore = 0;
-        restartCorrectTime();
-        setBadPoseStatus();
-        return false;
-    }
-
     // standardize features
     let modelFeaturesScaled = standardization(modelFeatures);
     let userFeaturesScaled = standardization(userFeatures)
@@ -91,14 +84,6 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     // split features in 3 parts
     let [modelFace, modelTorso, modelLegs] = splitInFaceLegsTorso(modelFeaturesScaled, qualifiedFeatures);
     let [userFace, userTorso, userLegs] = splitInFaceLegsTorso(userFeaturesScaled, qualifiedFeatures);
-
-    if(userFace.length < minFaceFeaturesThreshold || userTorso.length < minTorsoFeaturesThreshold || userLegs.length < minLegsFeaturesThreshold){
-        currentFrame = 0;
-        prevMaxScore = 0;
-        restartCorrectTime();
-        setBadPoseStatus();
-        return false;
-    }
 
     // affine transformation
     let [transformedFace, AFace] = affineTransformation(modelFace, userFace);
@@ -119,33 +104,15 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
 
     // let allAvgDist = maxDistFace + maxDistTorso + maxDistLegs;
     let allAvgDist = avgDistFace + avgDistTorso + avgDistLegs;
-
-    if(avgCosineSimilarity <= 0.3 || allAvgDist <= 0.35){
-        let correctTimeLeft = setCorrectPoseStatus('Good.', 'blue');
-
-        if(avgCosineSimilarity <= 0.3 && allAvgDist <= 0.3){
-            correctTimeLeft = setCorrectPoseStatus('Excellent!', 'green');
-            if(isCompleteCorrectDuration(correctTimeLeft)){
-                playAudio(excellentAudio);
-                totalScore += 200;
-                document.getElementById("total").innerHTML = Math.floor(totalScore);
-                return true;
-            }
-        }
-
-        if(isCompleteCorrectDuration(correctTimeLeft)){
-            playAudio(goodAudio);
-            totalScore += 100;
-            document.getElementById("total").innerHTML = Math.floor(totalScore);
-            return true;
-        }
-        return false;
+    currentScore = Math.floor(100 - 50*(avgCosineSimilarity + allAvgDist));
+    if(currentScore > 70) {
+        document.getElementById('current').style['color'] = 'green';
+    } else if(currentScore > 55) {
+        document.getElementById('current').style['color'] = 'blue';
+    } else {
+        document.getElementById('current').style['color'] = 'red';
     }
-
-    restartCorrectTime();
-    setIncorrectPoseStatus();
-    return false;
-
+    document.getElementById("current").innerHTML = currentScore;
 }
 
 function setExampleImage() {
@@ -163,8 +130,7 @@ function setExampleImage() {
 }
 
 function setup() {
-  setExampleImage();
-
+  generateNewModel();
   var canvas = createCanvas(360, 360);
   canvas.parent('main');
   video = createCapture(VIDEO);
@@ -182,7 +148,7 @@ function setup() {
         score: poses[0].pose.score,
         keypoints: poses[0].pose.keypoints
       };
-      isSimilar = getSimilarity(exPoseData, userPoseData);
+      getSimilarity(exPoseData, userPoseData);
     }
   });
   // Hide the video element, and just show the canvas
@@ -190,6 +156,28 @@ function setup() {
 }
 
 function modelReady() {
+  let counter = 20;
+  window.setInterval(function(){
+    counter--;
+    document.getElementById("pose-status-duration").innerHTML = `Time Remaining: ${counter}s`;
+    if(counter <= 3){
+        document.getElementById('pose-status-duration').style['color'] = 'orange';
+    }
+    if(counter === 0){
+        counter = 20;
+        document.getElementById('pose-status-duration').style['color'] = 'black';
+        if(currentScore > 70){
+            playAudio(excellentAudio);
+        } else if(currentScore > 55){
+            playAudio(goodAudio);
+        } else {
+            playAudio(badAudio);
+        }
+        generateNewModel();
+        totalScore += currentScore;
+        document.getElementById("total").innerHTML = Math.floor(totalScore);
+    }
+  }, 1000);
   document.getElementById('loading').style['display'] = 'none';
   document.getElementById('main').style['display'] = 'block';
 }
