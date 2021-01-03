@@ -17,6 +17,7 @@ let currentFrame = 0;
 let prevMaxScore = 0;
 
 // config
+let counter = 20;
 let goodAudio = new Audio('assets/audio/good.mp3');
 let excellentAudio = new Audio('assets/audio/excellent.mp3');
 let badAudio = new Audio('assets/audio/bad.mp3');
@@ -40,37 +41,6 @@ let showKeypoints = true;
 
 function playAudio(audio) {
     audio.play();
-}
-
-function restartCorrectTime(){
-    startCorrect = new Date();
-}
-
-function isCompleteCorrectDuration(timeLeft) {
-    if(timeLeft <= 0) {
-        return true;
-    }
-    return false;
-}
-
-function setCorrectPoseStatus(msg, color) {
-    let endCorrect = new Date();
-    let timeLeft = correctDurationThreshold - (endCorrect.getTime() - startCorrect.getTime());
-
-    document.getElementById('pose-status').style['color'] = color;
-    document.getElementById("pose-status-duration").innerHTML = `${msg} Keep the pose for ${Math.round(timeLeft/1000 * 10) / 10} s left`;
-
-    return timeLeft;
-}
-
-function setIncorrectPoseStatus() {
-    document.getElementById('pose-status').style['color'] = 'orange';
-    document.getElementById("pose-status-duration").innerHTML = 'Incorrect Pose!!';
-}
-
-function setBadPoseStatus() {
-    document.getElementById('pose-status').style['color'] = 'red';
-    document.getElementById("pose-status-duration").innerHTML = 'Pose not detected!! Ensure the whole body was seen!';
 }
 
 function getSimilarity(modelFeaturesObj, userFeaturesObj) {
@@ -142,8 +112,10 @@ function setup() {
   // This sets up an event that fills the global variable "poses"
   // with an array every time new poses are detected
   poseNet.on('pose', function(results) {
+    currentFrame += 1;
     poses = results;
-    if(poses && poses.length > 0) {
+    if(poses && poses.length > 0 && currentFrame %checkPerFrames == 0) {
+      currentFrame = 0;
       userPoseData = {
         score: poses[0].pose.score,
         keypoints: poses[0].pose.keypoints
@@ -156,7 +128,6 @@ function setup() {
 }
 
 function modelReady() {
-  let counter = 20;
   window.setInterval(function(){
     counter--;
     document.getElementById("pose-status-duration").innerHTML = `Time Remaining: ${counter}s`;
@@ -164,8 +135,6 @@ function modelReady() {
         document.getElementById('pose-status-duration').style['color'] = 'orange';
     }
     if(counter === 0){
-        counter = 20;
-        document.getElementById('pose-status-duration').style['color'] = 'black';
         if(currentScore > 70){
             playAudio(excellentAudio);
         } else if(currentScore > 55){
@@ -183,6 +152,9 @@ function modelReady() {
 }
 
 function generateNewModel() {
+    counter = 20;
+    document.getElementById('pose-status-duration').style['color'] = 'black';
+    document.getElementById("pose-status-duration").innerHTML = `Time Remaining: ${counter}s`;
     idx = Math.floor(Math.random() * data.length);
     setExampleImage();
 }
@@ -194,14 +166,6 @@ function draw() {
   if(showKeypoints){
     drawKeypoints();
     drawSkeleton();
-  }
-
-  if(isSimilar) {
-    currentFrame = 0;
-    prevMaxScore = 0;
-    restartCorrectTime();
-    isSimilar = !isSimilar;
-    generateNewModel();
   }
 }
 
