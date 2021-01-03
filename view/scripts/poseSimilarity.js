@@ -45,12 +45,12 @@ function isCompleteCorrectDuration(timeLeft) {
     return false;
 }
 
-function setCorrectPoseStatus() {
+function setCorrectPoseStatus(msg, color) {
     let endCorrect = new Date();
     let timeLeft = correctDurationThreshold - (endCorrect.getTime() - startCorrect.getTime());
 
-    document.getElementById('pose-status').style['color'] = 'green';
-    document.getElementById("pose-status-duration").innerHTML = `Correct! Keep the pose for ${Math.round(timeLeft/1000 * 10) / 10} s left`;
+    document.getElementById('pose-status').style['color'] = color;
+    document.getElementById("pose-status-duration").innerHTML = `${msg} Keep the pose for ${Math.round(timeLeft/1000 * 10) / 10} s left`;
 
     return timeLeft;
 }
@@ -111,32 +111,20 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
     let [maxDistLegs, avgDistLegs, rotationLegs, totalConfLegs] = maxDistanceAndRotation(modelLegs, 
         transformedLegs, ALegs, modelConfidences.slice(faceFeatureList.length + torsoFeatureList.length, featureList.length));
 
-    let maxDistances = {
-        face: maxDistFace,
-        torso: maxDistTorso,
-        legs: maxDistLegs
-    }
+    // let allAvgDist = maxDistFace + maxDistTorso + maxDistLegs;
+    let allAvgDist = avgDistFace + avgDistTorso + avgDistLegs;
 
-    let avgDistances = {
-        face: avgDistFace,
-        torso: avgDistTorso,
-        legs: avgDistLegs
-    }
+    if(avgCosineSimilarity <= 0.3 || allAvgDist <= 0.35){
+        let correctTimeLeft = setCorrectPoseStatus('Good.', 'blue');
 
-    let rotations = {
-        face: rotationFace,
-        torso: rotationTorso,
-        legs: rotationLegs
-    }
-
-    let allAvgDist = maxDistFace + maxDistTorso + maxDistLegs;
-    // let allAvgDist = avgDistFace + avgDistTorso + avgDistLegs;
-
-    document.getElementById("face").innerHTML = avgCosineSimilarity;
-    document.getElementById("torso").innerHTML = allAvgDist;
-
-    if(avgCosineSimilarity <= 0.3 & allAvgDist <= 0.3){
-        let correctTimeLeft = setCorrectPoseStatus();
+        if(avgCosineSimilarity <= 0.3 && allAvgDist <= 0.3){
+            correctTimeLeft = setCorrectPoseStatus('Excellent!', 'green');
+            if(isCompleteCorrectDuration(correctTimeLeft)){
+                totalScore += 200;
+                document.getElementById("total").innerHTML = Math.floor(totalScore);
+                return true;
+            }
+        }
 
         if(isCompleteCorrectDuration(correctTimeLeft)){
             totalScore += 100;
