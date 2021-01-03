@@ -16,6 +16,8 @@ let currentFrame = 0;
 let prevMaxScore = 0;
 
 // config
+let goodAudio = new Audio('assets/audio/good.mp3');
+let excellentAudio = new Audio('assets/audio/excellent.mp3');
 let recordData = {};
 let {scale, rotate, translate, compose, applyToPoints} = window.TransformationMatrix;
 let idx = Math.floor(Math.random() * data.length);
@@ -33,6 +35,10 @@ let options = {
     quantBytes: 2
 }
 let showKeypoints = true;
+
+function playAudio(audio) {
+    audio.play();
+}
 
 function restartCorrectTime(){
     startCorrect = new Date();
@@ -120,6 +126,7 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
         if(avgCosineSimilarity <= 0.3 && allAvgDist <= 0.3){
             correctTimeLeft = setCorrectPoseStatus('Excellent!', 'green');
             if(isCompleteCorrectDuration(correctTimeLeft)){
+                playAudio(excellentAudio);
                 totalScore += 200;
                 document.getElementById("total").innerHTML = Math.floor(totalScore);
                 return true;
@@ -127,6 +134,7 @@ function getSimilarity(modelFeaturesObj, userFeaturesObj) {
         }
 
         if(isCompleteCorrectDuration(correctTimeLeft)){
+            playAudio(goodAudio);
             totalScore += 100;
             document.getElementById("total").innerHTML = Math.floor(totalScore);
             return true;
