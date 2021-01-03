@@ -2,7 +2,7 @@ let img;
 let poseNet;
 let poses = [];
 let idx = 0;
-let totalModel = 31;
+let totalModel = 121;
 
 let userFeaturesObj;
 let modelValid = false;
@@ -20,7 +20,7 @@ function setupImage() {
 
 function isModelValid(userFeaturesObj) {
     // remove unqualified features
-    let [_, userFeatures, qualifiedFeatures] = removeUnqualifiedKeypoints(userFeaturesObj, userFeaturesObj);
+    let [_, userFeatures, _not_used, qualifiedFeatures] = removeUnqualifiedKeypoints(userFeaturesObj, userFeaturesObj);
 
     // check qualified features threshold
     if(qualifiedFeatures.length < minFeaturesThreshold){
